@@ -4066,16 +4066,40 @@ public class AndroidUtilities {
     }
     }
 
-    public static boolean copyFile(InputStream sourceFile, OutputStream out) throws IOException {
+public static boolean copyFile(InputStream sourceFile, OutputStream out) throws IOException {
+    try {
         byte[] buf = new byte[4096];
         int len;
         while ((len = sourceFile.read(buf)) > 0) {
-            Thread.yield();
+            Thread.yield(); // Keep this as it was observed in the file
             out.write(buf, 0, len);
         }
-        out.close();
+        if (out instanceof FileOutputStream) {
+            try {
+                ((FileOutputStream) out).getFD().sync();
+            } catch (IOException e) {
+                FileLog.e("Failed to sync FileOutputStream: " + e);
+                // Continue to attempt closing the stream even if sync fails.
+            }
+        }
         return true;
+    } finally {
+        if (sourceFile != null) {
+            try {
+                sourceFile.close();
+            } catch (IOException e) {
+                FileLog.e(e);
+            }
+        }
+        if (out != null) {
+            try {
+                out.close();
+            } catch (IOException e) {
+                FileLog.e(e);
+            }
+        }
     }
+}
 
     public static boolean copyFileSafe(File sourceFile, File destFile) {
         try {
