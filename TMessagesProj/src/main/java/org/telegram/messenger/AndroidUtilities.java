@@ -4036,7 +4036,34 @@ public class AndroidUtilities {
     }
 
     public static boolean copyFile(InputStream sourceFile, File destFile) throws IOException {
-        return copyFile(sourceFile, new FileOutputStream(destFile));
+    OutputStream out = null;
+    try {
+        out = new FileOutputStream(destFile);
+        byte[] buf = new byte[4096];
+        int len;
+        while ((len = sourceFile.read(buf)) > 0) {
+            out.write(buf, 0, len);
+        }
+        if (out instanceof FileOutputStream) {
+            ((FileOutputStream) out).getFD().sync(); // Ensure data is flushed
+        }
+        return true;
+    } finally {
+        if (sourceFile != null) {
+            try {
+                sourceFile.close();
+            } catch (IOException e) {
+                FileLog.e(e);
+            }
+        }
+        if (out != null) {
+            try {
+                out.close();
+            } catch (IOException e) {
+                FileLog.e(e);
+            }
+        }
+    }
     }
 
     public static boolean copyFile(InputStream sourceFile, OutputStream out) throws IOException {
